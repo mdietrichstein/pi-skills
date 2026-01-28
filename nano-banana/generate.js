@@ -2,6 +2,94 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
+
+// Cost tracking file location
+const COST_FILE = path.join(os.homedir(), ".nano-banana-costs.json");
+
+// Pricing per image (USD) - based on Google AI pricing
+// https://ai.google.dev/pricing
+const PRICING = {
+	flash: 0.0315,       // Gemini 2.5 Flash Image
+	pro: {
+		"1K": 0.039,     // Gemini 3 Pro Image Preview - 1K
+		"2K": 0.056,     // Gemini 3 Pro Image Preview - 2K
+		"4K": 0.08       // Gemini 3 Pro Image Preview - 4K
+	}
+};
+
+// Load current cost data
+function loadCostData() {
+	try {
+		if (fs.existsSync(COST_FILE)) {
+			return JSON.parse(fs.readFileSync(COST_FILE, "utf8"));
+		}
+	} catch {
+		// If file is corrupted, start fresh
+	}
+	return {
+		totalCost: 0,
+		imageCount: 0,
+		history: []
+	};
+}
+
+// Save cost data
+function saveCostData(data) {
+	fs.writeFileSync(COST_FILE, JSON.stringify(data, null, 2));
+}
+
+// Get cost for current generation
+function getGenerationCost(model, imageSize) {
+	if (model === "flash") {
+		return PRICING.flash;
+	}
+	return PRICING.pro[imageSize] || PRICING.pro["1K"];
+}
+
+// Format currency
+function formatCost(amount) {
+	return `$${amount.toFixed(4)}`;
+}
+
+// Show cost summary
+function showCosts() {
+	const data = loadCostData();
+	console.log("\n📊 Nano Banana Cost Summary");
+	console.log("═".repeat(40));
+	console.log(`Total images generated: ${data.imageCount}`);
+	console.log(`Total cost:             ${formatCost(data.totalCost)}`);
+	
+	if (data.history && data.history.length > 0) {
+		console.log("\nRecent generations:");
+		console.log("─".repeat(40));
+		const recent = data.history.slice(-10);
+		for (const entry of recent) {
+			const date = new Date(entry.timestamp).toLocaleDateString();
+			const promptPreview = entry.prompt.substring(0, 30) + (entry.prompt.length > 30 ? "..." : "");
+			console.log(`  ${date} | ${entry.model}/${entry.size} | ${formatCost(entry.cost)} | "${promptPreview}"`);
+		}
+	}
+	console.log("\n⚠️  Costs are estimates based on published pricing.");
+	console.log("   Verify actual charges: https://ai.google.dev/pricing");
+	console.log("");
+}
+
+// Reset cost tracking
+function resetCosts() {
+	const data = loadCostData();
+	const oldTotal = data.totalCost;
+	const oldCount = data.imageCount;
+	
+	saveCostData({
+		totalCost: 0,
+		imageCount: 0,
+		history: []
+	});
+	
+	console.log("✅ Cost tracking reset.");
+	console.log(`   Previous total: ${formatCost(oldTotal)} (${oldCount} images)`);
+}
 
 const args = process.argv.slice(2);
 
@@ -31,6 +119,12 @@ for (let i = 0; i < args.length; i++) {
 	} else if (arg === "-h" || arg === "--help") {
 		printHelp();
 		process.exit(0);
+	} else if (arg === "--costs") {
+		showCosts();
+		process.exit(0);
+	} else if (arg === "--reset-costs") {
+		resetCosts();
+		process.exit(0);
 	} else if (!arg.startsWith("-")) {
 		prompt = arg;
 	}
@@ -46,13 +140,18 @@ Options:
   --model <type>        Model: flash (fast) or pro (quality) (default: flash)
   --size <size>         Image size for pro model: ${validSizes.join(", ")} (default: 1K)
 
+Cost Control:
+  --costs               Show cost summary and recent generation history
+  --reset-costs         Reset cost tracking to zero
+
 Environment:
   GEMINI_API_KEY        Required. Your Google AI API key.
 
 Examples:
   generate.js "a sunset over mountains"
   generate.js "cyberpunk city" --aspect 16:9 -o wallpaper.png
-  generate.js "make it warmer" -i photo.png --model pro`);
+  generate.js "make it warmer" -i photo.png --model pro
+  generate.js --costs`);
 }
 
 if (!prompt) {
@@ -205,8 +304,32 @@ try {
 		process.exit(1);
 	}
 
+	// Calculate and track cost
+	const generationCost = getGenerationCost(model, imageSize);
+	const costData = loadCostData();
+	
+	costData.totalCost += generationCost;
+	costData.imageCount += 1;
+	costData.history.push({
+		timestamp: new Date().toISOString(),
+		prompt: prompt.substring(0, 100),
+		model: model,
+		size: model === "pro" ? imageSize : "1K",
+		cost: generationCost
+	});
+	
+	// Keep only last 100 entries in history
+	if (costData.history.length > 100) {
+		costData.history = costData.history.slice(-100);
+	}
+	
+	saveCostData(costData);
+
 	// Output the path to the generated image
 	console.log(path.resolve(outputPath));
+	
+	// Display cost information
+	console.error(`\n💰 Cost: ${formatCost(generationCost)} | Total bill: ${formatCost(costData.totalCost)} (${costData.imageCount} images) [estimate]`);
 	
 	// If there was accompanying text, show it on stderr
 	if (textResponse) {

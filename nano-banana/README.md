@@ -116,16 +116,53 @@ IMAGE_PATH=$(./generate.js "sunset" 2>/dev/null)
 echo "Generated: $IMAGE_PATH"
 ```
 
+## Cost Control
+
+Nano Banana tracks your generation costs locally. After each image generation, you'll see:
+
+```
+💰 Cost: $0.0315 | Total bill: $0.1260 (4 images) [estimate]
+```
+
+> ⚠️ **Note:** Costs are estimates based on published pricing, not actual API billing. Verify your actual charges in the Google Cloud Console or at [ai.google.dev/pricing](https://ai.google.dev/pricing).
+
+### View Cost Summary
+
+```bash
+./generate.js --costs
+```
+
+Shows total spending and the last 10 generations with timestamps.
+
+### Reset Cost Tracking
+
+```bash
+./generate.js --reset-costs
+```
+
+Resets the cost counter to zero (useful for starting a new billing period).
+
+### Pricing
+
+Estimated rates (USD per image):
+
+| Model | Size | Cost |
+|-------|------|------|
+| Flash | 1K   | $0.0315 |
+| Pro   | 1K   | $0.039 |
+| Pro   | 2K   | $0.056 |
+| Pro   | 4K   | $0.08 |
+
+Cost data is stored in `~/.nano-banana-costs.json`.
+
+**Always verify actual charges at [ai.google.dev/pricing](https://ai.google.dev/pricing)** - prices may change.
+
 ## Limitations
 
 - Maximum ~25MB for input images
 - Some content restrictions apply (safety filters)
 - Pro model may have longer generation times
 - API rate limits apply based on your plan
-
-## Pricing
-
-Check [Google AI pricing](https://ai.google.dev/pricing) for current rates. Image generation is billed per image generated.
 
 ## License
 
