@@ -52,7 +52,13 @@ Requires a Google AI API key with Gemini access.
 
 ## Output
 
-Returns the path to the generated image file. Images are saved as PNG.
+Returns the path to the generated image file on stdout. Images are saved as PNG.
+
+## Displaying Generated Images
+
+After generating an image, use the `view_image` tool with the output path to display it inline in the terminal. The `generate.js` script outputs the absolute path to the generated image on stdout.
+
+Always offer to show the generated image to the user using `view_image` with the generated image path.
 
 ## Models
 
