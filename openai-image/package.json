@@ -1,0 +1,8 @@
+{
+	"name": "openai-image",
+	"version": "1.0.0",
+	"type": "module",
+	"description": "Image generation using OpenAI's GPT Image and DALL-E models",
+	"author": "Mario Zechner",
+	"license": "MIT"
+}
