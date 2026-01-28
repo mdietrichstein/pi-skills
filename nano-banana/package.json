@@ -1,0 +1,8 @@
+{
+	"name": "nano-banana",
+	"version": "1.0.0",
+	"type": "module",
+	"description": "Image generation using Google Gemini's Nano Banana API",
+	"author": "Mario Zechner",
+	"license": "MIT"
+}
