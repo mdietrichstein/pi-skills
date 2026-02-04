@@ -1,0 +1,12 @@
+{
+  "name": "linear-skill",
+  "version": "1.0.0",
+  "description": "Linear project management integration for pi",
+  "type": "module",
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.32.6"
+  }
+}
