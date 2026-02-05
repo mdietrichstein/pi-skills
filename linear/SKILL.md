@@ -77,6 +77,8 @@ LINEAR_API_KEY=your-api-key-here
 {baseDir}/create-issue.js --title "Task" --description "Details" --priority high
 {baseDir}/create-issue.js --title "Bug Report" --team TEAM_KEY --attachment "/path/to/screenshot.png"
 {baseDir}/create-issue.js --title "Feature" --team TEAM_KEY --attachment "/path/to/mockup.png" --attachment "https://example.com/spec.pdf"
+{baseDir}/create-issue.js --title "Feature" --team MA --project "RSG Challenges"
+{baseDir}/create-issue.js --title "Bug fix" --team MA --project "RSG Challenges" --assignee email@domain.com
 ```
 
 ### Update Issue

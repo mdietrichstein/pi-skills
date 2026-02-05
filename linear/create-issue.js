@@ -10,6 +10,8 @@
  *   ./create-issue.js --title "Task" --description "Details" --priority high
  *   ./create-issue.js --title "Bug" --team ENG --attachment "https://example.com/file.png"
  *   ./create-issue.js --title "Bug" --team ENG --attachment "https://example.com/file1.png" --attachment "https://example.com/file2.pdf"
+ *   ./create-issue.js --title "Feature" --team MA --project "RSG Challenges"
+ *   ./create-issue.js --title "Bug fix" --team MA --project "RSG Challenges" --assignee email@domain.com
  */
 
 import { makeRequest, parseArgs, getUserId, formatOutput, processLocalImagesForDescription, createAttachment } from './linear-api.js';
@@ -53,6 +55,48 @@ async function getTeams() {
   
   const data = await makeRequest(query);
   return data.teams.nodes;
+}
+
+async function getProjectsByTeam(teamId) {
+  const query = `
+    query GetProjectsByTeam($teamId: String!) {
+      team(id: $teamId) {
+        projects {
+          nodes {
+            id
+            name
+            description
+            state
+          }
+        }
+      }
+    }
+  `;
+  
+  const data = await makeRequest(query, { teamId });
+  return data.team.projects.nodes;
+}
+
+async function getAllProjects() {
+  const query = `
+    query GetAllProjects {
+      projects {
+        nodes {
+          id
+          name
+          teams {
+            nodes {
+              id
+              key
+            }
+          }
+        }
+      }
+    }
+  `;
+  
+  const data = await makeRequest(query);
+  return data.projects.nodes;
 }
 
 async function getTeamStates(teamId) {
@@ -167,6 +211,10 @@ async function createIssue(issueData) {
             key
             name
           }
+          project {
+            id
+            name
+          }
         }
       }
     }
@@ -185,6 +233,10 @@ async function createIssue(issueData) {
   
   if (assigneeId) {
     input.assigneeId = assigneeId;
+  }
+  
+  if (issueData.projectId) {
+    input.projectId = issueData.projectId;
   }
   
   const data = await makeRequest(mutation, { input });
@@ -237,6 +289,38 @@ async function main() {
       
       const priority = args.priority ? (priorities[args.priority.toLowerCase()] ?? 0) : 0;
       
+      // Handle project assignment
+      let projectId = null;
+      if (args.project) {
+        // First try to find project by name within the team
+        const teamProjects = await getProjectsByTeam(team.id);
+        let project = teamProjects.find(p => p.name.toLowerCase() === args.project.toLowerCase());
+        
+        // If not found in team projects, search all projects
+        if (!project) {
+          const allProjects = await getAllProjects();
+          project = allProjects.find(p => 
+            p.name.toLowerCase() === args.project.toLowerCase() &&
+            p.teams.nodes.some(t => t.id === team.id)
+          );
+        }
+        
+        if (!project) {
+          console.error(`Project '${args.project}' not found for team '${args.team}'`);
+          console.error('Available projects for this team:');
+          const availableProjects = await getProjectsByTeam(team.id);
+          if (availableProjects.length > 0) {
+            availableProjects.forEach(p => console.error(`  ${p.name} (${p.state})`));
+          } else {
+            console.error('  No projects found for this team');
+          }
+          process.exit(1);
+        }
+        
+        projectId = project.id;
+        console.log(`📋 Assigning to project: ${project.name}`);
+      }
+      
       // Handle attachments - support multiple files
       let attachments = [];
       if (args.attachment) {
@@ -253,6 +337,7 @@ async function main() {
         priority,
         assigneeEmail: args.assignee,
         teamId: team.id,
+        projectId,
         attachments
       };
     } else {
@@ -270,6 +355,9 @@ async function main() {
       console.log(`📋 ${issue.identifier} - ${issue.title}`);
       console.log(`Team: ${issue.team.key} (${issue.team.name})`);
       console.log(`Status: ${issue.state.name}`);
+      if (issue.project) {
+        console.log(`Project: ${issue.project.name}`);
+      }
       console.log(`URL: ${issue.url}`);
       
       // Display attachment results if any
