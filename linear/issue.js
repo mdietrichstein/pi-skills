@@ -125,11 +125,6 @@ async function main() {
               toState {
                 name
               }
-              changes {
-                field
-                from
-                to
-              }
             }
           }
         }
@@ -261,10 +256,6 @@ async function main() {
         
         if (entry.fromState && entry.toState) {
           console.log(`  📈 ${actor} moved from ${entry.fromState.name} to ${entry.toState.name} - ${date}`);
-        } else if (entry.changes.length > 0) {
-          entry.changes.forEach(change => {
-            console.log(`  ✏️  ${actor} changed ${change.field}: ${change.from} → ${change.to} - ${date}`);
-          });
         }
       });
     }

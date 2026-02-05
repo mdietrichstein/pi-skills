@@ -12,10 +12,17 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Load environment variables
-if (fs.existsSync(path.join(__dirname, '.env'))) {
+// Load environment variables - check current working directory first, then skill directory
+const cwd = process.cwd();
+const projectEnvPath = path.join(cwd, '.env');
+const skillEnvPath = path.join(__dirname, '.env');
+
+if (fs.existsSync(projectEnvPath)) {
   const dotenv = await import('dotenv');
-  dotenv.config({ path: path.join(__dirname, '.env') });
+  dotenv.config({ path: projectEnvPath });
+} else if (fs.existsSync(skillEnvPath)) {
+  const dotenv = await import('dotenv');
+  dotenv.config({ path: skillEnvPath });
 }
 
 const API_URL = 'https://api.linear.app/graphql';
