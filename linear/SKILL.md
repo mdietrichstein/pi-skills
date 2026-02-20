@@ -88,8 +88,18 @@ LINEAR_API_KEY=your-api-key-here
 {baseDir}/update-issue.js ISSUE_ID --assignee email@domain.com  
 {baseDir}/update-issue.js ISSUE_ID --priority high
 {baseDir}/update-issue.js ISSUE_ID --title "New title"
+{baseDir}/update-issue.js ISSUE_ID --label "platform-api"
+{baseDir}/update-issue.js ISSUE_ID --label "Bug" --label "Feature"
 {baseDir}/update-issue.js ISSUE_ID --attachment "https://example.com/file.png"
 {baseDir}/update-issue.js ISSUE_ID --attachment "https://example.com/log.txt" --attachment "https://example.com/config.json"
+```
+
+### Comment on Issue
+
+```bash
+{baseDir}/comment.js ISSUE_ID "Comment text"           # Add comment using positional arg
+{baseDir}/comment.js ISSUE_ID --body "Comment text"     # Add comment using --body flag
+{baseDir}/comment.js ENG-123 "Deployed to staging"      # Using issue identifier
 ```
 
 ### Delete Issue

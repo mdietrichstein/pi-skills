@@ -11,9 +11,10 @@
  *   ./update-issue.js ISSUE_ID --description "New description"
  *   ./update-issue.js ISSUE_ID --attachment "https://example.com/file.png"
  *   ./update-issue.js ISSUE_ID --attachment "https://example.com/file1.png" --attachment "https://example.com/file2.pdf"
+ *   ./update-issue.js ISSUE_ID --parent CLA-14
  */
 
-import { makeRequest, parseArgs, getUserId, getWorkflowStateId, formatOutput, formatDate, processLocalImagesForDescription, createAttachment } from './linear-api.js';
+import { makeRequest, parseArgs, getUserId, getWorkflowStateId, formatOutput, formatDate, processLocalImagesForDescription, createAttachment, getIssueByIdentifier, getLabelId, getIssueLabelIds } from './linear-api.js';
 import path from 'path';
 
 const priorities = {
@@ -181,9 +182,13 @@ async function main() {
     console.error('  --title <title>         Update title');
     console.error('  --description <desc>    Update description');
     console.error('  --attachment <file>     Add file attachment (can be used multiple times)');
+    console.error('  --label <name>         Add label by name (can be used multiple times)');
+    console.error('  --parent <ISSUE_ID>    Set parent issue (e.g., CLA-14)');
     console.error('');
     console.error('Example: ./update-issue.js ENG-123 --status "In Progress" --priority high');
     console.error('Example: ./update-issue.js ENG-123 --attachment "https://example.com/screenshot.png"');
+    console.error('Example: ./update-issue.js ENG-123 --label "platform-api" --label "Feature"');
+    console.error('Example: ./update-issue.js CLA-15 --parent CLA-14');
     process.exit(1);
   }
   
@@ -258,6 +263,42 @@ async function main() {
       console.log(`📄 Updating description`);
     }
     
+    // Handle parent update
+    if (args.parent) {
+      const parentIssue = await getIssueByIdentifier(args.parent);
+      if (!parentIssue) {
+        console.error(`Parent issue '${args.parent}' not found`);
+        process.exit(1);
+      }
+      updates.parentId = parentIssue.id;
+      hasUpdates = true;
+      console.log(`👆 Setting parent to: ${parentIssue.identifier} - ${parentIssue.title}`);
+    }
+
+    // Handle labels
+    if (args.label) {
+      const labelNames = Array.isArray(args.label) ? args.label : [args.label];
+      const currentLabels = await getIssueLabelIds(issue.id);
+      const currentLabelIds = currentLabels.map(l => l.id);
+      
+      for (const labelName of labelNames) {
+        const labelId = await getLabelId(labelName);
+        if (!labelId) {
+          console.error(`Label '${labelName}' not found`);
+          process.exit(1);
+        }
+        if (!currentLabelIds.includes(labelId)) {
+          currentLabelIds.push(labelId);
+          console.log(`🏷️  Adding label: ${labelName}`);
+        } else {
+          console.log(`🏷️  Label already present: ${labelName}`);
+        }
+      }
+      
+      updates.labelIds = currentLabelIds;
+      hasUpdates = true;
+    }
+
     // Handle attachments
     let attachments = [];
     if (args.attachment) {
@@ -271,7 +312,7 @@ async function main() {
     }
     
     if (!hasUpdates) {
-      console.error('No updates specified. Use --status, --assignee, --priority, --title, --description, or --attachment');
+      console.error('No updates specified. Use --status, --assignee, --priority, --title, --description, --label, or --attachment');
       process.exit(1);
     }
     

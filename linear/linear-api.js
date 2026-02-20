@@ -589,6 +589,88 @@ To add these files:
 }
 
 /**
+ * Find label ID by name (case-insensitive)
+ */
+export async function getLabelId(labelName) {
+  const query = `
+    query GetLabels {
+      issueLabels(first: 100) {
+        nodes {
+          id
+          name
+        }
+      }
+    }
+  `;
+
+  try {
+    const data = await makeRequest(query);
+    const label = data.issueLabels.nodes.find(l => l.name.toLowerCase() === labelName.toLowerCase());
+    return label ? label.id : null;
+  } catch (error) {
+    console.error('Error finding label:', error.message);
+    return null;
+  }
+}
+
+/**
+ * Get current label IDs for an issue
+ */
+export async function getIssueLabelIds(issueId) {
+  const query = `
+    query GetIssueLabels($id: String!) {
+      issue(id: $id) {
+        labels {
+          nodes {
+            id
+            name
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const data = await makeRequest(query, { id: issueId });
+    return data.issue ? data.issue.labels.nodes : [];
+  } catch (error) {
+    console.error('Error getting issue labels:', error.message);
+    return [];
+  }
+}
+
+/**
+ * Find issue ID by identifier (e.g., "CLA-14")
+ */
+export async function getIssueByIdentifier(identifier) {
+  const query = `
+    query GetIssue($filter: IssueFilter) {
+      issues(filter: $filter, first: 1) {
+        nodes {
+          id
+          identifier
+          title
+        }
+      }
+    }
+  `;
+
+  const parts = identifier.match(/^([A-Z]+)-(\d+)$/i);
+  if (!parts) {
+    return null;
+  }
+
+  const data = await makeRequest(query, {
+    filter: {
+      number: { eq: parseInt(parts[2]) },
+      team: { key: { eq: parts[1].toUpperCase() } }
+    }
+  });
+
+  return data.issues.nodes[0] || null;
+}
+
+/**
  * Output formatter
  */
 export function formatOutput(data, format = 'table') {

@@ -12,9 +12,10 @@
  *   ./create-issue.js --title "Bug" --team ENG --attachment "https://example.com/file1.png" --attachment "https://example.com/file2.pdf"
  *   ./create-issue.js --title "Feature" --team MA --project "RSG Challenges"
  *   ./create-issue.js --title "Bug fix" --team MA --project "RSG Challenges" --assignee email@domain.com
+ *   ./create-issue.js --title "Sub-task" --team CLA --parent CLA-14
  */
 
-import { makeRequest, parseArgs, getUserId, formatOutput, processLocalImagesForDescription, createAttachment } from './linear-api.js';
+import { makeRequest, parseArgs, getUserId, formatOutput, processLocalImagesForDescription, createAttachment, getIssueByIdentifier } from './linear-api.js';
 import { createInterface } from 'readline';
 import path from 'path';
 
@@ -238,6 +239,10 @@ async function createIssue(issueData) {
   if (issueData.projectId) {
     input.projectId = issueData.projectId;
   }
+
+  if (issueData.parentId) {
+    input.parentId = issueData.parentId;
+  }
   
   const data = await makeRequest(mutation, { input });
   
@@ -331,6 +336,18 @@ async function main() {
         }
       }
       
+      // Handle parent issue
+      let parentId = null;
+      if (args.parent) {
+        const parentIssue = await getIssueByIdentifier(args.parent);
+        if (!parentIssue) {
+          console.error(`Parent issue '${args.parent}' not found`);
+          process.exit(1);
+        }
+        parentId = parentIssue.id;
+        console.log(`👆 Setting parent: ${parentIssue.identifier} - ${parentIssue.title}`);
+      }
+
       issueData = {
         title: args.title,
         description: args.description,
@@ -338,6 +355,7 @@ async function main() {
         assigneeEmail: args.assignee,
         teamId: team.id,
         projectId,
+        parentId,
         attachments
       };
     } else {
