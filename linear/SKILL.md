@@ -111,6 +111,17 @@ LINEAR_API_KEY=your-api-key-here
 
 ⚠️ **Warning**: Deleted issues are moved to trash and can be restored via Linear web interface.
 
+### Create Document
+
+```bash
+{baseDir}/create-document.js --title "Doc Title" --project "Project Name" --content "markdown content"
+{baseDir}/create-document.js --title "Doc Title" --project "Project Name" --content-file /path/to/file.md
+{baseDir}/create-document.js --title "Doc Title" --team TEAM_KEY --content "markdown content"
+{baseDir}/create-document.js --title "Doc Title" --issue ISSUE_ID --content "markdown content"
+{baseDir}/create-document.js --title "Doc Title" --project "Project Name" --content-file /path/to/file.md --icon "📋"
+{baseDir}/create-document.js --title "Doc Title" --project "Project Name" --content-file /path/to/file.md --json
+```
+
 ### Create Project
 
 ```bash
